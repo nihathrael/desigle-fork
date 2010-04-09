@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 #    DeSiGLE
-#    Copyright (C) 2008 Derek Anderson
+#    Origninal Copyright (C) 2008 Derek Anderson
+#    Changes Copyright (C) 2010 Greg McWhirter
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 import commands, dircache, getopt, math, pickle, os, re, shutil, string, sys, tempfile, thread, threading, time, traceback, subprocess
 from datetime import date, datetime, timedelta
 import config
+import glib
 
 RUN_FROM_DIR = os.path.abspath(os.path.dirname(sys.argv[0])) + '/'
 #CURRENT_DIR = os.path.expanduser("~")
@@ -616,13 +618,20 @@ class MainGUI:
 
     def refresh_pdf_preview_pane(self):
         pdf_preview = self.ui.get_widget('pdf_preview')
+        rebuild = False
         
         if os.path.isfile( self.pdf_file ):
-            self.pdf_preview['document'] = poppler.document_new_from_file ('file://'+ self.pdf_file, None)
-            self.pdf_preview['n_pages'] = self.pdf_preview['document'].get_n_pages()
-            self.pdf_preview['scale'] = None
-            self.goto_pdf_page( self.pdf_preview['current_page_number'], new_doc=True )
+            try:
+                self.pdf_preview['document'] = poppler.document_new_from_file ('file://%s' % (self.pdf_file), None)
+                self.pdf_preview['n_pages'] = self.pdf_preview['document'].get_n_pages()
+                self.pdf_preview['scale'] = None
+                self.goto_pdf_page( self.pdf_preview['current_page_number'], new_doc=True )
+            except glib.GError:
+                rebuild = True
         else:
+            rebuild = True
+            
+        if rebuild:
             pdf_preview.set_size_request(0,0)
             self.pdf_preview['current_page'] = None
             self.ui.get_widget('button_move_previous_page').set_sensitive( False )
@@ -730,27 +739,28 @@ class MainGUI:
         ftex.write( tex )
         ftex.close()
 
-        #symlink included files to /tmp
-        if self.get_current_tex_doc().fq_filename:
-            DOC_DIR = os.path.dirname(self.get_current_tex_doc().fq_filename)
-            local_files = os.listdir(DOC_DIR)
-            p = re.compile('\\include[a-z]*[{](.*?)[}]')
-            include_files = [ match.group(1) for match in p.finditer(tex) ]
-            p = re.compile('\\input[a-z]*[{](.*?)[}]')
-            include_files.extend( [ match.group(1) for match in p.finditer(tex) ] )
-            for fname in local_files:
-                if fname.rfind('.')>0:
-                    fname_base = fname[:fname.rfind('.')]
-                else:
-                    fname_base = ''
-                if fname in include_files or fname_base in include_files:
-                    #print fname, os.path.join('/','tmp', fname)
-                    os.popen('ln -sf "%s" /tmp/' % os.path.join(DOC_DIR, fname) ).close()
+        #With the switch to rubber, this is no longer necessary
+        ##symlink included files to /tmp
+        #if self.get_current_tex_doc().fq_filename:
+        #    DOC_DIR = os.path.dirname(self.get_current_tex_doc().fq_filename)
+        #    local_files = os.listdir(DOC_DIR)
+        #    p = re.compile('\\include[a-z]*[{](.*?)[}]')
+        #    include_files = [ match.group(1) for match in p.finditer(tex) ]
+        #    p = re.compile('\\input[a-z]*[{](.*?)[}]')
+        #    include_files.extend( [ match.group(1) for match in p.finditer(tex) ] )
+        #    for fname in local_files:
+        #        if fname.rfind('.')>0:
+        #            fname_base = fname[:fname.rfind('.')]
+        #        else:
+        #            fname_base = ''
+        #        if fname in include_files or fname_base in include_files:
+        #            #print fname, os.path.join('/','tmp', fname)
+        #            os.popen('ln -sf "%s" /tmp/' % os.path.join(DOC_DIR, fname) ).close()
 
         os.chdir('/tmp')
         #child_stdin, child_stdout = os.popen2( 'pdflatex -file-line-error -src-specials -halt-on-error "%s"' % (self.tex_file) )
         if self.get_current_tex_doc().fq_filename:
-            fdir = os.path.dirname(self.get_current_tex_doc().fq_filename)
+            fdir = os.path.realpath(os.path.dirname(self.get_current_tex_doc().fq_filename))
             cmd_string = 'rubber -s -I "%s" -d -c \'bibtex.path "%s"\' -c \'bibtex.stylepath "%s"\' -c \'index.path "%s"\' -v "%s"' % (fdir,fdir,fdir,fdir,self.tex_file)
             #cmd_string = 'TEXINPUTS=%s: pdflatex -file-line-error -src-specials -halt-on-error "%s"' % (os.path.dirname(self.get_current_tex_doc().fq_filename),self.tex_file)
         else:
@@ -901,11 +911,11 @@ class MainGUI:
         about = gtk.AboutDialog()
         about.set_name(PROGRAM)
         about.set_version(VERSION)
-        about.set_copyright('Copyright (c) 2008 Derek Anderson')
+        about.set_copyright('Original Copyright (c) 2008 Derek Anderson\nChanges Copyright (c) 2010 Greg McWhirter')
         about.set_comments('''Derek's Simple Gnome LaTeX Editor''')
         about.set_license(GPL)
-        about.set_website('http://desigle.org/')
-        about.set_authors(['Derek Anderson','http://kered.org'])
+        about.set_website('http://github.com/gsmcwhirter/desigle-fork')
+        about.set_authors(['Derek Anderson: http://kered.org','Greg McWhirter: http://github.com/gsmcwhirter/'])
         about.connect('response', lambda x,y: about.destroy())
         about.show()
 

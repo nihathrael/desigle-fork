@@ -2,7 +2,7 @@
  DeSiGLE - Derek's Simple Gnome LaTeX Editor
 =============================================
 
-Dependencies
+Dependencies (out of date)
 ------------
 
 You will need all the typical gnome/python bindings.  If you're using a recent
@@ -36,12 +36,11 @@ Like most editors, run it like this:
 
 Feedback
 --------
-Please report bugs to the website, and join the listserv:
+Please report bugs to the website:
+    http://github.com/gsmcwhirter/desigle-fork
+
+Based on Derek Anderson's original, information for which is at:
 
     http://code.google.com/p/desigle/
     http://groups.google.com/group/desigle-discuss
-    
-
-Thanks!
-Derek Anderson
 
