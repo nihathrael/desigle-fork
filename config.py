@@ -1,4 +1,7 @@
 import pickle
+import os
+import commands
+import sys
 
 try:
     import gconf
@@ -9,10 +12,23 @@ except:
     sys.exit()
 
 
+RUN_FROM_DIR = os.path.abspath(os.path.dirname(sys.argv[0])) + '/'
+CURRENT_DIR = os.getcwd()
+PROGRAM = 'DeSiGLE'
+SVN_INFO = commands.getoutput('svn info')
+VERSION = ''
+for line in SVN_INFO.split('\n'):
+    if line.startswith('Revision:'):
+        VERSION = 'v0.'+ line[10:]
+
+tmp_file = open( RUN_FROM_DIR + 'GPL.txt', 'r' )
+GPL = tmp_file.read()
+tmp_file.close()
+
 class GConfConfig:
-    
+
     BASE_KEY = None
-    
+
     def get_string(self, key, default=None):
         x = self.client.get_string(self.BASE_KEY +'/'+ key)
         if x:
@@ -22,20 +38,20 @@ class GConfConfig:
 
     def set_string(self, key, value):
         self.client.set_string(self.BASE_KEY +'/'+ key,value)
-        
+
     def get_list(self, key, default=[]):
         x = self.client.get_string(self.BASE_KEY +'/'+ key)
         if x:
             return pickle.loads(x)
         else:
             return default
-    
+
     def set_list(self, key, values):
-        self.client.set_string( self.BASE_KEY +'/'+ key, pickle.dumps(values) ) 
-    
+        self.client.set_string( self.BASE_KEY +'/'+ key, pickle.dumps(values) )
+
     def get_bool(self, key):
         return self.client.get_bool(self.BASE_KEY +'/'+ key)
-    
+
     def set_bool(self, key, value):
         self.client.set_bool(self.BASE_KEY +'/'+ key,value)
 
@@ -45,7 +61,7 @@ class GConfConfig:
             return x
         else:
             return default
-    
+
     def set_int(self, key, value):
         self.client.set_int(self.BASE_KEY +'/'+ key, value)
 
