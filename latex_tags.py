@@ -274,6 +274,9 @@ AUTOCOMPLETE = [
     '\\vdots',
     '\\item',
     '\\item[]',
+    '\grqq',
+    'glqq'
+
 ]
 
 SYMLIST = [ x.strip() for x in open( RUN_FROM_DIR + 'SYMLIST', 'r' ).readlines() ]
