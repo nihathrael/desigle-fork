@@ -182,7 +182,7 @@ class MainGUI:
         if file_name == self.tex_file:
             editor = self.get_current_tex_doc().editor
         else:
-            pass # TODO: select the roght notebook tab
+            return # TODO: select the right notebook tab
         buffer = editor.get_buffer()
         found_iter = buffer.get_iter_at_line(line_number)
         editor.scroll_to_iter( found_iter, 0.1 )
