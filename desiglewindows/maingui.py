@@ -447,14 +447,13 @@ class MainGUI:
 
 
     def open(self):
-        global CURRENT_DIR
-        os.chdir(CURRENT_DIR)
+        os.chdir(config.CURRENT_DIR)
         dialog = gtk.FileChooserDialog(title='Select a TEX file...', parent=None, action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK), backend=None)
         dialog.set_default_response(gtk.RESPONSE_OK)
         dialog.show_all()
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
-            CURRENT_DIR = dialog.get_current_folder()
+            config.CURRENT_DIR = dialog.get_current_folder()
             filename = dialog.get_filename()
             self.open_file( filename )
         dialog.destroy()
