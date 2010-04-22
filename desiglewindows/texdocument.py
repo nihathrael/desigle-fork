@@ -25,6 +25,7 @@ import config
 
 from datetime import datetime
 from latex_tags import *
+from util import pango_escape
 
 class TexDocument:
     main_gui = None
