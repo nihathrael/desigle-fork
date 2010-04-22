@@ -71,6 +71,7 @@ AUTOCOMPLETE = [
     '\\chapter{}',
     '\\section{}',
     '\\subsection{}',
+    '\\subsubsection{}',
     '\\ref{}',
     '\\pageref{}',
     '\\footnote{}',
@@ -274,8 +275,8 @@ AUTOCOMPLETE = [
     '\\vdots',
     '\\item',
     '\\item[]',
-    '\grqq',
-    'glqq'
+    '\\grqq',
+    '\\glqq'
 
 ]
 
