@@ -20,6 +20,7 @@
 import gtkspell
 import gtk
 import os
+import subprocess
 
 import config
 
