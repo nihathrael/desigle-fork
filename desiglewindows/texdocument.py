@@ -21,24 +21,23 @@ import gtkspell
 import gtk
 import os
 import subprocess
+import gtksourceview2 as gtksourceview
+import gio
 
 import config
 
 from datetime import datetime
 from latex_tags import *
-from util import pango_escape
+from util import pango_escape, get_language_for_mime_type, remove_all_marks
+from completionprovider import CompletionProvider
 
 class TexDocument:
     main_gui = None
     fq_filename = None
     changed_time = None
     changed = False
-    undo_stack = []
-    redo_stack = []
-    record_operations = True
     editor = None
     error_line_offset = 0
-    undo_or_redo_in_progress = False
 
     def __init__(self, main_gui, filename=None):
         self.main_gui = main_gui
@@ -54,25 +53,15 @@ class TexDocument:
 
         self.notebook.set_current_page(self.notebook.get_n_pages()-1)
 
-        text_buffer = self.editor.get_buffer()
         if self.fq_filename:
-            f = open( self.fq_filename )
-            self.record_operations = False
-            text_buffer.set_text( f.read() )
-            self.record_operations = True
-            f.close()
+            self.open_file(self.fq_filename)
             self.ui.get_widget('menu_save').set_sensitive(False)
             self.ui.get_widget('toolbutton_save').set_sensitive(False)
         else:
-            text_buffer = self.editor.get_buffer()
-            text_buffer.set_text( self.config.get_string( 'default_blank_document', default=BLANK_DOCUMENT ) )
+            self.open_file("default.tex")
             self.ui.get_widget('menu_save').set_sensitive(True)
             self.ui.get_widget('toolbutton_save').set_sensitive(True)
-
         self.changed = False
-        self.retag( text_buffer )
-        text_buffer.place_cursor( text_buffer.get_start_iter() )
-
 
     def init_label(self):
         hbox = gtk.HBox()
@@ -96,6 +85,20 @@ class TexDocument:
         hbox.show_all()
         self.notebook.set_tab_label( self.scrolled_window, hbox )
 
+    def retag( self, buffer=None, start=None, end=None ):
+        if not buffer: buffer = self.editor.get_buffer()
+        if not start: start = buffer.get_start_iter()
+        if not end: end = buffer.get_end_iter()
+
+        # tag errors
+        for file, line_number, error in self.main_gui.errors:
+            tmp = line_number-1
+            st = buffer.get_iter_at_line(tmp)
+            while st.get_chars_in_line()<=1:
+                tmp +=1
+                st = buffer.get_iter_at_line(tmp)
+            et = buffer.get_iter_at_line(tmp+1)
+            buffer.apply_tag_by_name( 'latex_error', st, et )
 
     def close(self, x=None):
         if self.changed:
@@ -126,14 +129,14 @@ class TexDocument:
         page_num = self.main_gui.tex_docs.index(self)
         self.notebook.remove_page(page_num)
         self.main_gui.tex_docs.remove(self)
-        if not len(self.main_gui.tex_docs):
-            self.main_gui.new()
-
 
     def init_editor(self):
+        self.text_buffer = gtksourceview.Buffer()
         self.scrolled_window = gtk.ScrolledWindow()
-        self.editor = gtk.TextView()
+        self.editor = gtksourceview.View(self.text_buffer)
         self.editor.set_wrap_mode(gtk.WRAP_WORD)
+        completion = self.editor.get_completion()
+        completion.add_provider(CompletionProvider("LaTEX Provider"))
         self.scrolled_window.add(self.editor)
         self.notebook.append_page(self.scrolled_window)
         self.scrolled_window.show_all()
@@ -142,10 +145,10 @@ class TexDocument:
         self.editor.modify_font(pangoFont)
         spell = gtkspell.Spell(self.editor)
         spell.set_language("en_US")
-        self.editor.get_buffer().connect('changed', self.editor_text_change_event )
-        self.editor.get_buffer().connect('mark-set', self.editor_mark_set_event )
-        self.editor.get_buffer().connect('insert-text', self.editor_insert_text_event )
-        self.editor.get_buffer().connect('delete-range', self.editor_delete_range_event )
+        self.text_buffer.connect('changed', self.update_cursor_position, self.editor)
+        self.text_buffer.connect('mark-set', self.editor_mark_set_event)
+        #self.text_buffer.connect('insert-text', self.editor_insert_text_event )
+        #self.text_buffer.connect('delete-range', self.editor_delete_range_event )
 
     def init_tags(self):
         tag_table = self.editor.get_buffer().get_tag_table()
@@ -157,30 +160,12 @@ class TexDocument:
 
     def editor_text_change_event(self, buffer):
         self.changed_time = datetime.now()
-        self.ui.get_widget('menu_undo').set_sensitive( len(self.undo_stack)>0 )
-        if not self.undo_or_redo_in_progress:
-            for action in self.redo_stack:
-                action[1].delete_mark(action[2])
-            self.redo_stack = []
         self.undo_or_redo_in_progress = False
-        self.ui.get_widget('menu_redo').set_sensitive( len(self.redo_stack) > 0)
+        self.ui.get_widget('menu_redo').set_sensitive( self.text_buffer.can_redo())
         self.changed = True
         self.ui.get_widget('menu_save').set_sensitive(True)
         self.ui.get_widget('toolbutton_save').set_sensitive(True)
-
-    def editor_insert_text_event(self, buffer, start, text, length):
-        if not self.record_operations: return
-        start_mark = buffer.create_mark(None, start, True)
-        self.undo_stack.append( ('insert_text', buffer, start_mark, text, length) )
-        self.prune_undo_stack()
-
-
-    def editor_delete_range_event(self, buffer, start, end):
-        if not self.record_operations: return
-        start_mark = buffer.create_mark(None, start, False)
-        text = buffer.get_text( start, end )
-        self.undo_stack.append( ('delete_range', buffer, start_mark, text) )
-        self.prune_undo_stack()
+        self.ui.get_widget('menu_undo').set_sensitive( self.text_buffer.can_undo() )
 
     def editor_mark_set_event(self, buffer, x, y):
         iter=buffer.get_iter_at_mark(buffer.get_insert())
@@ -190,72 +175,36 @@ class TexDocument:
         if search_text==None:
             search_text = self.ui.get_widget('entry_find').get_text()
         search_text = search_text.lower()
-        buffer = self.editor.get_buffer()
-        editor_text = buffer.get_text( buffer.get_start_iter(), buffer.get_end_iter() )
+        editor_text = self.text_buffer.get_text( self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter() )
         editor_text = editor_text.lower()
-        editor_offset = buffer.get_iter_at_mark( buffer.get_insert() ).get_offset()
+        editor_offset = self.text_buffer.get_iter_at_mark( self.text_buffer.get_insert() ).get_offset()
         found_offset = editor_text.find(search_text, editor_offset+1)
         if found_offset<0:
             found_offset = editor_text.find(search_text)
         if found_offset>=0:
-            found_iter = buffer.get_iter_at_offset(found_offset)
-            buffer.place_cursor( found_iter )
+            found_iter = self.text_buffer.get_iter_at_offset(found_offset)
+            self.text_buffer.place_cursor( found_iter )
             self.editor.scroll_to_iter( found_iter, 0.0 )
-            buffer.remove_tag_by_name('search_highlight', buffer.get_start_iter(), buffer.get_end_iter())
-            buffer.apply_tag_by_name( 'search_highlight', found_iter, buffer.get_iter_at_offset(found_offset+len(search_text)) )
+            self.text_buffer.remove_tag_by_name('search_highlight', self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
+            self.text_buffer.apply_tag_by_name( 'search_highlight', found_iter, self.text_buffer.get_iter_at_offset(found_offset+len(search_text)) )
 
 
     def find_backward(self, search_text=None):
         if search_text==None:
             search_text = self.ui.get_widget('entry_find').get_text()
         search_text = search_text.lower()
-        buffer = self.editor.get_buffer()
-        editor_text = buffer.get_text( buffer.get_start_iter(), buffer.get_end_iter() )
+        editor_text =self.text_buffer.get_text(self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter() )
         editor_text = editor_text.lower()
-        editor_offset = buffer.get_iter_at_mark( buffer.get_insert() ).get_offset()
+        editor_offset = self.text_buffer.get_iter_at_mark( self.text_buffer.get_insert() ).get_offset()
         found_offset = editor_text.rfind(search_text, 0, editor_offset)
         if found_offset<0:
             found_offset = editor_text.rfind(search_text)
         if found_offset>=0:
-            found_iter = buffer.get_iter_at_offset(found_offset)
-            buffer.place_cursor( found_iter )
+            found_iter = self.text_buffer.get_iter_at_offset(found_offset)
+            self.text_buffer.place_cursor( found_iter )
             self.editor.scroll_to_iter( found_iter, 0.0 )
-            buffer.remove_tag_by_name('search_highlight', buffer.get_start_iter(), buffer.get_end_iter())
-            buffer.apply_tag_by_name( 'search_highlight', found_iter, buffer.get_iter_at_offset(found_offset+len(search_text)) )
-
-
-    def prune_undo_stack(self):
-        while len(self.undo_stack)>512:
-            action = self.undo_stack.pop(0)
-            action[1].delete_mark(action[2])
-
-
-    def retag( self, buffer=None, start=None, end=None ):
-        if not buffer: buffer = self.editor.get_buffer()
-        if not start: start = buffer.get_start_iter()
-        if not end: end = buffer.get_end_iter()
-
-        # tag syntax highlighting
-        for tag_name, tag_attr in LATEX_TAGS:
-            #buffer.remove_tag_by_name(tag_name, start, end)
-            buffer.remove_tag_by_name(tag_name, buffer.get_start_iter(), buffer.get_end_iter())
-            p = tag_attr['regex']
-            #line = start.get_text(end)
-            line = buffer.get_text( buffer.get_start_iter(), buffer.get_end_iter() )
-            for match in p.finditer(line):
-                st = buffer.get_iter_at_offset( start.get_offset()+ match.span()[0] )
-                et = buffer.get_iter_at_offset( start.get_offset()+ match.span()[1] )
-                buffer.apply_tag_by_name( tag_name, st, et )
-        # tag errors
-        for file, line_number, error in self.main_gui.errors:
-            tmp = line_number-1
-            st = buffer.get_iter_at_line(tmp)
-            while st.get_chars_in_line()<=1:
-                tmp +=1
-                st = buffer.get_iter_at_line(tmp)
-            et = buffer.get_iter_at_line(tmp+1)
-            buffer.apply_tag_by_name( 'latex_error', st, et )
-            #print line_number, st.get_offset(), et.get_offset(), error
+            self.text_buffer.remove_tag_by_name('search_highlight', self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
+            self.text_buffer.apply_tag_by_name( 'search_highlight', found_iter, self.text_buffer.get_iter_at_offset(found_offset+len(search_text)) )
 
     def get_actual_screen_coords_of_text_cursor(self):
         text_buffer = self.editor.get_buffer()
@@ -314,12 +263,71 @@ class TexDocument:
             output = child_stdout.read()
             child_stdout.close()
 
-    def start_undo_or_redo(self, typ, stack_item):
-        if typ == 'undo':
-            self.redo_stack.append(stack_item)
-        elif typ == 'redo':
-            self.undo_stack.append(stack_item)
-        self.undo_or_redo_in_progress = True
 
-    def set_record_operations(self, record_operations):
-        self.record_operations = record_operations
+    def open_file(self, filename):
+        #get the new language for the file mimetype
+
+        if os.path.isabs(filename):
+            path = filename
+        else:
+            path = os.path.abspath(filename)
+        f = gio.File(path)
+
+        path = f.get_path()
+
+        info = f.query_info("*")
+
+        mime_type = info.get_content_type()
+        language = None
+
+        if mime_type:
+            language = get_language_for_mime_type(mime_type)
+            if not language:
+                print 'No language found for mime type "%s"' % mime_type
+        else:
+            print 'Couldn\'t get mime type for file "%s"' % filename
+
+        self.text_buffer.set_language(language)
+        self.text_buffer.set_highlight_syntax(True)
+        remove_all_marks(self.text_buffer)
+        self.load_file(path) # TODO: check return
+        return True
+
+    def load_file(self, path):
+        self.text_buffer.begin_not_undoable_action()
+        try:
+            txt = open(path).read()
+        except:
+            return False
+        self.text_buffer.set_text(txt)
+        self.text_buffer.set_data('filename', path)
+        self.text_buffer.end_not_undoable_action()
+
+        self.text_buffer.set_modified(False)
+        self.text_buffer.place_cursor(self.text_buffer.get_start_iter())
+        return True
+
+
+    def update_cursor_position(self, buffer, view):
+        tabwidth = view.get_tab_width()
+        pos_label = self.ui.get_widget('label_row_col')
+        iter = buffer.get_iter_at_mark(buffer.get_insert())
+        nchars = iter.get_offset()
+        row = iter.get_line() + 1
+        start = iter
+        start.set_line_offset(0)
+        col = 0
+        while not start.equal(iter):
+            if start.get_char == '\t':
+                col += (tabwidth - (col % tabwidth))
+            else:
+                col += 1
+                start = start.forward_char()
+        pos_label.set_text('char: %d, line: %d, column: %d' % (nchars, row, col))
+        self.mark_editor_changed()
+
+    def mark_editor_changed(self):
+        self.ui.get_widget('menu_save').set_sensitive(True)
+        self.ui.get_widget('toolbutton_save').set_sensitive(True)
+        self.changed_time = datetime.now()
+        self.changed = True

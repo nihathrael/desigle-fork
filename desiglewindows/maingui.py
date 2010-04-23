@@ -64,7 +64,7 @@ class MainGUI:
         if len(self.tex_docs)<=page_num: return
         current_tex_doc = self.tex_docs[page_num]
         if not current_tex_doc: return
-        self.ui.get_widget('menu_undo').set_sensitive( len(current_tex_doc.undo_stack)>0 )
+        self.ui.get_widget('menu_undo').set_sensitive(current_tex_doc.text_buffer.can_undo())
         self.ui.get_widget('menu_redo').set_sensitive(False)
         self.ui.get_widget('menu_save').set_sensitive( current_tex_doc.changed or not current_tex_doc.fq_filename )
         self.ui.get_widget('toolbutton_save').set_sensitive( current_tex_doc.changed or not current_tex_doc.fq_filename )
@@ -104,7 +104,6 @@ class MainGUI:
         undo_action.connect_accelerator()
         undo_action.connect_proxy(self.ui.get_widget('menu_undo'))
         redo_action = gtk.Action('redo_action', None, None, gtk.STOCK_REDO)
-        #redo_action.connect('activate', self.echo)
         redo_action.connect('activate', lambda x: self.editor_redo())
         actiongroup.add_action_with_accel(redo_action, '<Control>y')
         redo_action.set_accel_group(accelgroup)
@@ -188,10 +187,6 @@ class MainGUI:
         editor.scroll_to_iter( found_iter, 0.1 )
 
 
-    def echo(self, a=None, b=None, c=None, d=None, e=None ):
-        pass
-        #print 'a, b, c, d, e', a, b, c, d, e
-
 
     def toggle_find(self):
         toolbar_find = self.ui.get_widget('toolbar_find')
@@ -213,54 +208,17 @@ class MainGUI:
 
 
     def editor_undo(self):
-        current_tex_doc = self.get_current_tex_doc()
-        if not current_tex_doc.undo_stack: return
-        #self.record_operations = False
-        current_tex_doc.set_record_operations(False)
-        action = current_tex_doc.undo_stack.pop()
-        current_tex_doc.start_undo_or_redo('undo',action)
-        if action[0]=='insert_text':
-            buffer = action[1]
-            start = buffer.get_iter_at_mark(action[2])
-            end = buffer.get_iter_at_offset( start.get_offset()+action[4] )
-            buffer.delete( start, end )
-            #buffer.delete_mark(action[2])
-        if action[0]=='delete_range':
-            buffer = action[1]
-            start = buffer.get_iter_at_mark(action[2])
-            text = action[3]
-            buffer.insert( start, text )
-        #self.record_operations = True
-        current_tex_doc.set_record_operations(True)
-        self.ui.get_widget('menu_undo').set_sensitive( len(current_tex_doc.undo_stack)>0 )
+        buffer = self.get_current_tex_doc().text_buffer
+        if buffer.can_undo():
+            buffer.undo()
+        self.ui.get_widget('menu_undo').set_sensitive(buffer.can_undo())
 
 
     def editor_redo(self):
-        current_tex_doc = self.get_current_tex_doc()
-        if not current_tex_doc.redo_stack: return
-        #self.record_operations = False
-        current_tex_doc.set_record_operations(False)
-        action = current_tex_doc.redo_stack.pop()
-        current_tex_doc.start_undo_or_redo('redo',action)
-        if action[0]=='delete_range':
-            buffer = action[1]
-            end = buffer.get_iter_at_mark(action[2])
-            start = buffer.get_iter_at_offset(end.get_offset()-len(action[3]))
-            buffer.delete(start,end)
-            #buffer.delete_mark(action[2])
-        if action[0]=='insert_text':
-            buffer = action[1]
-            start = buffer.get_iter_at_mark(action[2])
-            text = action[3]
-            buffer.insert(start,text)
-        #self.record_operations = True
-        current_tex_doc.set_record_operations(True)
-        self.ui.get_widget('menu_redo').set_sensitive( len(current_tex_doc.redo_stack)>0 )
-
-
-
-
-
+        buffer = self.get_current_tex_doc().text_buffer
+        if buffer.can_redo():
+            buffer.redo()
+        self.ui.get_widget('menu_redo').set_sensitive(buffer.can_redo())
 
     def init_pdf_preview_pane(self):
         file, self.tex_file = tempfile.mkstemp('.tex')
@@ -392,10 +350,8 @@ class MainGUI:
         text_buffer = self.get_current_tex_doc().editor.get_buffer()
         tex = text_buffer.get_text( text_buffer.get_start_iter(), text_buffer.get_end_iter() )
         if self.config.get_bool( 'pref_auto_add_doc_tags_in_preview') and tex.find('\\documentclass')==-1:
-            self.get_current_tex_doc().set_record_operations(False)
             tex = '\\documentclass{%s}\n\\begin{document}\n' % self.config.get_string( 'default_doc_class', default='article' ) \
                 + tex + '\n\\end{document}\n'
-            self.get_current_tex_doc().set_record_operations(True)
             self.error_line_offset = -2
         else:
             self.error_line_offset = 0
@@ -495,7 +451,7 @@ class MainGUI:
                             recommendations.append((i,s))
                             break
             if recommendations:
-                self.show_recommendations(recommendations)
+                #self.show_recommendations(recommendations)
                 self.get_current_tex_doc().changed_time = None
                 return False
         except:

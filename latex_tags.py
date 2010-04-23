@@ -285,11 +285,3 @@ SYMLIST = [ x.strip() for x in open( RUN_FROM_DIR + 'SYMLIST', 'r' ).readlines()
 #AUTOCOMPLETE_PLUS = list( set(AUTOCOMPLETE).union( set(SYMLIST) ) )
 AUTOCOMPLETE_PLUS = list( set(AUTOCOMPLETE) )
 AUTOCOMPLETE_PLUS.sort()
-
-
-BLANK_DOCUMENT = """\\documentclass{article}
-\\begin{document}
-
-\\centerline{\\large Welcome to DeSiGLE: Derek's Simple Gnome \\LaTeX\\ Editor! }
-
-\\end{document}"""
