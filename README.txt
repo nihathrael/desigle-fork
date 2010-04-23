@@ -32,6 +32,10 @@ Usage
 Like most editors, run it like this:
 
     python desigle.py [filename]
+or make the desigle.py executable with
+	chmod +x desigle.py
+then you should be able to run it with
+ 	./desigle.py [filename]
     
 
 Feedback
