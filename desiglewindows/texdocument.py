@@ -136,7 +136,7 @@ class TexDocument:
         self.editor = gtksourceview.View(self.text_buffer)
         self.editor.set_wrap_mode(gtk.WRAP_WORD)
         completion = self.editor.get_completion()
-        completion.add_provider(CompletionProvider("LaTEX Provider"))
+        completion.add_provider(CompletionProvider("LaTeX Provider"))
         self.scrolled_window.add(self.editor)
         self.notebook.append_page(self.scrolled_window)
         self.scrolled_window.show_all()
@@ -147,8 +147,6 @@ class TexDocument:
         spell.set_language("en_US")
         self.text_buffer.connect('changed', self.update_cursor_position, self.editor)
         self.text_buffer.connect('mark-set', self.editor_mark_set_event)
-        #self.text_buffer.connect('insert-text', self.editor_insert_text_event )
-        #self.text_buffer.connect('delete-range', self.editor_delete_range_event )
 
     def init_tags(self):
         tag_table = self.editor.get_buffer().get_tag_table()
@@ -205,18 +203,6 @@ class TexDocument:
             self.editor.scroll_to_iter( found_iter, 0.0 )
             self.text_buffer.remove_tag_by_name('search_highlight', self.text_buffer.get_start_iter(), self.text_buffer.get_end_iter())
             self.text_buffer.apply_tag_by_name( 'search_highlight', found_iter, self.text_buffer.get_iter_at_offset(found_offset+len(search_text)) )
-
-    def get_actual_screen_coords_of_text_cursor(self):
-        text_buffer = self.editor.get_buffer()
-        here = text_buffer.get_iter_at_mark( text_buffer.get_insert() )
-        here_location = self.editor.get_iter_location(here)
-        x,y = here_location.x, here_location.y
-        visible_rect = self.editor.get_visible_rect()
-        x,y = x-visible_rect.x,y-visible_rect.y
-        x,y = self.editor.translate_coordinates(self.main_gui.main_window, x,y)
-        main_window_position = self.main_gui.main_window.get_position()
-        x,y = main_window_position[0]+x, main_window_position[1]+y+12
-        return x,y
 
     def save_as(self):
         os.chdir(config.CURRENT_DIR)
@@ -329,5 +315,7 @@ class TexDocument:
     def mark_editor_changed(self):
         self.ui.get_widget('menu_save').set_sensitive(True)
         self.ui.get_widget('toolbutton_save').set_sensitive(True)
+        self.ui.get_widget('menu_redo').set_sensitive( self.text_buffer.can_redo())
+        self.ui.get_widget('menu_undo').set_sensitive( self.text_buffer.can_undo())
         self.changed_time = datetime.now()
         self.changed = True
