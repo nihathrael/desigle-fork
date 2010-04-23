@@ -436,55 +436,13 @@ class MainGUI:
     def save(self):
         return self.get_current_tex_doc().save()
 
-
-    def check_for_autocomplete_patterns(self):
-        try:
-            recommendations = []
-            text_buffer = self.get_current_tex_doc().editor.get_buffer()
-            here = text_buffer.get_iter_at_mark( text_buffer.get_insert() )
-            before = text_buffer.get_text( text_buffer.get_iter_at_line(here.get_line()), here )
-            after = text_buffer.get_text( here, text_buffer.get_iter_at_line_offset(here.get_line(),max(0,here.get_chars_in_line()-1)) )
-            for s in AUTOCOMPLETE_PLUS:
-                for i in range(1,len(s)):
-                    if before.endswith( s[:i] ):
-                        if not after.startswith( s[i:i+3] ):
-                            recommendations.append((i,s))
-                            break
-            if recommendations:
-                #self.show_recommendations(recommendations)
-                self.get_current_tex_doc().changed_time = None
-                return False
-        except:
-            traceback.print_exc()
-
-    def recommendation_menu_key_press_event(self, menu, event):
-        if event.keyval in [65288, 65535]:
-            menu.destroy()
-        if event.string and event.keyval<256:
-            self.get_current_tex_doc().editor.get_buffer().insert_at_cursor(event.string)
-            menu.destroy()
-
-    def show_recommendations(self, recommendations):
-        x,y = self.get_current_tex_doc().get_actual_screen_coords_of_text_cursor()
-        menu = gtk.Menu()
-        menu.connect('key-press-event', self.recommendation_menu_key_press_event)
-        for i,s in recommendations:
-            menu_item = gtk.MenuItem(label=s.replace('\n','...'))
-            menu_item.connect( 'activate', lambda x,i,s: self.get_current_tex_doc().editor.get_buffer().insert_at_cursor(s[i:]), i, s )
-            menu.append(menu_item)
-        menu.show_all()
-        menu.popup(None, None, None, 0, 0)
-        menu.get_parent_window().move( x, y )
-
-
     def watch_editor(self):
         while True:
             try:
                 if self.tex_docs and (self.refresh_pdf_preview or (self.get_current_tex_doc() and self.get_current_tex_doc().changed_time and (datetime.now() - self.get_current_tex_doc().changed_time).seconds >= 1)):
                     gtk.gdk.threads_enter()
-                    if not self.check_for_autocomplete_patterns():
-                        self.refresh_preview()
-                        self.get_current_tex_doc().retag()
+                    self.refresh_preview()
+                    self.get_current_tex_doc().retag()
                     gtk.gdk.threads_leave()
             except:
                 traceback.print_exc()
@@ -510,12 +468,12 @@ class MainGUI:
 
     def show_about_dialog(self, o):
         about = gtk.AboutDialog()
-        about.set_name(PROGRAM)
-        about.set_version(VERSION)
-        about.set_copyright('Original Copyright (c) 2008 Derek Anderson\nChanges Copyright (c) 2010 Greg McWhirter')
+        about.set_name(config.PROGRAM)
+        about.set_version(config.VERSION)
+        about.set_copyright('Original Copyright (c) 2008 Derek Anderson\nChanges Copyright (c) 2010 Greg McWhirter\nChanges Copyright (c) 2010 Thomas Kinnen')
         about.set_comments('''Derek's Simple Gnome LaTeX Editor''')
-        about.set_license(GPL)
-        about.set_website('http://github.com/gsmcwhirter/desigle-fork')
-        about.set_authors(['Derek Anderson: http://kered.org','Greg McWhirter: http://github.com/gsmcwhirter/'])
+        about.set_license(config.GPL)
+        about.set_website('http://github.com/nihathrael/desigle-fork')
+        about.set_authors(['Derek Anderson: http://kered.org','Greg McWhirter: http://github.com/gsmcwhirter/', 'Thomas Kinnen: http://github.com/nihathrael/'])
         about.connect('response', lambda x,y: about.destroy())
         about.show()
