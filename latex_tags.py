@@ -276,7 +276,8 @@ AUTOCOMPLETE = [
     '\\item',
     '\\item[]',
     '\\grqq',
-    '\\glqq'
+    '\\glqq',
+    '\\bf',
 
 ]
 
