@@ -90,6 +90,8 @@ class TexDocument:
         if not start: start = buffer.get_start_iter()
         if not end: end = buffer.get_end_iter()
 
+        buffer.remove_all_tags(start, end)
+
         # tag errors
         for file, line_number, error in self.main_gui.errors:
             tmp = line_number-1
