@@ -20,6 +20,8 @@
 import gobject
 import gtk
 import gtksourceview2 as gtksourceview
+import os
+
 from latex_tags import AUTOCOMPLETE
 
 class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
@@ -54,7 +56,7 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
         proposals = []
         if found is not None:
             text = "\\" + textiter.get_text(found[1])
-            if not " " in text:
+            if not " " in text and not os.linesep in text:
                 for proposal in self.do_get_proposals():
                     if proposal.get_label().startswith(text):
                         proposals.append(proposal)
