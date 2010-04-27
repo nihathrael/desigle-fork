@@ -85,12 +85,20 @@ class TexDocument:
         hbox.show_all()
         self.notebook.set_tab_label( self.scrolled_window, hbox )
 
+    def remove_current_line(self):
+        buffer = self.text_buffer
+        iter = buffer.get_iter_at_mark(buffer.get_insert())
+        line = iter.get_line()
+        iter_start = buffer.get_iter_at_line(line)
+        iter_end = buffer.get_iter_at_line(line+1)
+        buffer.delete(iter_start, iter_end)
+
     def retag( self, buffer=None, start=None, end=None ):
         if not buffer: buffer = self.editor.get_buffer()
         if not start: start = buffer.get_start_iter()
         if not end: end = buffer.get_end_iter()
 
-        buffer.remove_all_tags(start, end)
+        buffer.remove_tag_by_name("latex_error", start, end)
 
         # tag errors
         for file, line_number, error in self.main_gui.errors:

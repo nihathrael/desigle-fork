@@ -97,20 +97,33 @@ class MainGUI:
         accelgroup = gtk.AccelGroup()
         actiongroup = gtk.ActionGroup('SimpleAction')
         self.main_window.add_accel_group(accelgroup)
+
         undo_action = gtk.Action('undo_action', None, None, gtk.STOCK_UNDO)
         undo_action.connect('activate', lambda x: self.editor_undo())
         actiongroup.add_action_with_accel(undo_action, '<Control>z')
         undo_action.set_accel_group(accelgroup)
         undo_action.connect_accelerator()
         undo_action.connect_proxy(self.ui.get_widget('menu_undo'))
+
         redo_action = gtk.Action('redo_action', None, None, gtk.STOCK_REDO)
         redo_action.connect('activate', lambda x: self.editor_redo())
         actiongroup.add_action_with_accel(redo_action, '<Control>y')
         redo_action.set_accel_group(accelgroup)
         redo_action.connect_accelerator()
         redo_action.connect_proxy(self.ui.get_widget('menu_redo'))
+
         self.ui.get_widget('menu_undo').set_sensitive(False)
         self.ui.get_widget('menu_redo').set_sensitive(False)
+
+        remove_line_action = gtk.Action('remove_line_action', None, None, None)
+        remove_line_action.connect('activate', lambda x: self.remove_current_line())
+        actiongroup.add_action_with_accel(remove_line_action, '<Control>d')
+        remove_line_action.set_accel_group(accelgroup)
+        remove_line_action.connect_accelerator()
+        remove_line_action.connect_proxy(self.ui.get_widget('menu_delete_line'))
+        self.ui.get_widget('menu_delete_line').set_sensitive(True)
+
+
 
 
     def init_menu(self):
@@ -465,6 +478,8 @@ class MainGUI:
         t = UpdateThread()
         t.start()
 
+    def remove_current_line(self):
+        self.get_current_tex_doc().remove_current_line()
 
     def show_about_dialog(self, o):
         about = gtk.AboutDialog()
