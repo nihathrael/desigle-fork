@@ -135,6 +135,7 @@ class TexDocument:
         self.scrolled_window = gtk.ScrolledWindow()
         self.editor = gtksourceview.View(self.text_buffer)
         self.editor.set_wrap_mode(gtk.WRAP_WORD)
+        self.editor.set_indent_width(4)
         completion = self.editor.get_completion()
         completion.add_provider(CompletionProvider("LaTeX Provider"))
         self.scrolled_window.add(self.editor)
