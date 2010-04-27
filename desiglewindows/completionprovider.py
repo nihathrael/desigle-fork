@@ -35,9 +35,7 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
     def do_get_proposals(self):
         ret = []
         for item in AUTOCOMPLETE:
-            ret.append(gtksourceview.CompletionItem(item, item[1:]))
-            # TODO Find out how to make the insertation go over the first
-            # character, we remove the first character now for the time being
+            ret.append(gtksourceview.CompletionItem(item, item))
         return ret
 
     def do_get_activation(self):
@@ -61,5 +59,12 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
                     if proposal.get_label().startswith(text):
                         proposals.append(proposal)
         context.add_proposals(self, proposals, True)
+
+    # Implement our own get_start_iter function to allow us to overwrite special
+    # latex characters like \ or {
+    def do_get_start_iter(self, context, proposal):
+        textiter = context.get_iter()
+        found = textiter.backward_search("\\", gtk.TEXT_SEARCH_TEXT_ONLY)
+        return found[0]
 
 gobject.type_register(CompletionProvider)
