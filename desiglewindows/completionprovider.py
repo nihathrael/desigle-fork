@@ -28,15 +28,19 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
     def __init__(self, name):
         gobject.GObject.__init__(self)
         self.name = name
+        self.proposals = None
+        self._setup_proposals()
+
+    def _setup_proposals(self):
+        self.proposals = []
+        for item in sorted(AUTOCOMPLETE):
+            self.proposals.append(gtksourceview.CompletionItem(item, item))
 
     def do_get_name(self):
         return self.name
 
     def do_get_proposals(self):
-        ret = []
-        for item in sorted(AUTOCOMPLETE):
-            ret.append(gtksourceview.CompletionItem(item, item))
-        return ret
+        return self.proposals
 
     def do_get_activation(self):
         return gtksourceview.COMPLETION_ACTIVATION_INTERACTIVE
@@ -53,7 +57,7 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
         found = textiter.backward_search("\\", gtk.TEXT_SEARCH_TEXT_ONLY)
         proposals = []
         if found is not None:
-            text = "\\" + textiter.get_text(found[1])
+            text = textiter.get_text(found[0])
             if not " " in text and not os.linesep in text:
                 for proposal in self.do_get_proposals():
                     if proposal.get_label().startswith(text):
