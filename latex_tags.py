@@ -278,6 +278,9 @@ AUTOCOMPLETE = [
     '\\grqq',
     '\\glqq',
     '\\bf{}',
+    '\\nameref{}',
+    '\\multirow{}{*}{}',
+    '\\multicolumn{}{}{}',
 
 ]
 
