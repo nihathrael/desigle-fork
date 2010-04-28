@@ -60,11 +60,31 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
                         proposals.append(proposal)
         context.add_proposals(self, proposals, True)
 
-    # Implement our own get_start_iter function to allow us to overwrite special
-    # latex characters like \ or {
-    def do_get_start_iter(self, context, proposal):
-        textiter = context.get_iter()
-        found = textiter.backward_search("\\", gtk.TEXT_SEARCH_TEXT_ONLY)
-        return found[0]
+    def do_activate_proposal(self, proposal, iterator):
+        text = proposal.get_text()
+        start = iterator.backward_search("\\", gtk.TEXT_SEARCH_TEXT_ONLY)[0]
+        buffer = iterator.get_buffer()
+        # Handle replacing
+        buffer.begin_user_action()
+        buffer.delete(start, iterator)
+        buffer.insert(start, text, -1)
+
+        # get new iter, the old one has been modified
+        new_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        # calculate cursor moving for smart cursor placement
+        if os.linesep in text:
+            # used in snippets like:
+            # \begin{table}\n\end{table}
+            linesep_pos = text.index(os.linesep)
+            new_iter.backward_cursor_positions(len(text)-linesep_pos)
+        elif text.endswith("{}"):
+            #stuff like \subsection{}
+            new_iter.backward_cursor_position()
+
+        buffer.place_cursor(new_iter)
+        buffer.end_user_action()
+        return True
+
+
 
 gobject.type_register(CompletionProvider)
