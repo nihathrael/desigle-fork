@@ -34,7 +34,7 @@ class CompletionProvider(gobject.GObject, gtksourceview.CompletionProvider):
 
     def do_get_proposals(self):
         ret = []
-        for item in AUTOCOMPLETE:
+        for item in sorted(AUTOCOMPLETE):
             ret.append(gtksourceview.CompletionItem(item, item))
         return ret
 
