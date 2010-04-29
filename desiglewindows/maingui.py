@@ -35,6 +35,8 @@ import traceback
 import subprocess
 import tempfile
 import thread
+import threading
+import commands
 from datetime import datetime
 
 from latex_tags import *
@@ -100,14 +102,14 @@ class MainGUI:
 
         undo_action = gtk.Action('undo_action', None, None, gtk.STOCK_UNDO)
         undo_action.connect('activate', lambda x: self.editor_undo())
-        actiongroup.add_action_with_accel(undo_action, '<Control>z')
+        actiongroup.add_action_with_accel(undo_action, config.KEY_UNDO)
         undo_action.set_accel_group(accelgroup)
         undo_action.connect_accelerator()
         undo_action.connect_proxy(self.ui.get_widget('menu_undo'))
 
         redo_action = gtk.Action('redo_action', None, None, gtk.STOCK_REDO)
         redo_action.connect('activate', lambda x: self.editor_redo())
-        actiongroup.add_action_with_accel(redo_action, '<Control>y')
+        actiongroup.add_action_with_accel(redo_action, config.KEY_REDO)
         redo_action.set_accel_group(accelgroup)
         redo_action.connect_accelerator()
         redo_action.connect_proxy(self.ui.get_widget('menu_redo'))
@@ -117,7 +119,7 @@ class MainGUI:
 
         remove_line_action = gtk.Action('remove_line_action', None, None, None)
         remove_line_action.connect('activate', lambda x: self.remove_current_line())
-        actiongroup.add_action_with_accel(remove_line_action, '<Control>d')
+        actiongroup.add_action_with_accel(remove_line_action, config.KEY_REMOVE_LINE)
         remove_line_action.set_accel_group(accelgroup)
         remove_line_action.connect_accelerator()
         remove_line_action.connect_proxy(self.ui.get_widget('menu_delete_line'))

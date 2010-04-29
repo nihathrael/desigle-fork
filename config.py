@@ -11,12 +11,18 @@ except:
     print '\tfor ubuntu: sudo apt-get install python-gconf'
     sys.exit()
 
+# Keybindings
+KEY_UNDO = '<Control>z'
+KEY_REDO = '<Control>y'
+KEY_REMOVE_LINE = '<Control>d'
 
+# Program Setup
 RUN_FROM_DIR = os.path.abspath(os.path.dirname(sys.argv[0])) + '/'
 CURRENT_DIR = os.getcwd()
 PROGRAM = 'DeSiGLE'
 SVN_INFO = commands.getoutput('svn info')
 VERSION = ''
+
 for line in SVN_INFO.split('\n'):
     if line.startswith('Revision:'):
         VERSION = 'v0.'+ line[10:]

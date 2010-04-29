@@ -9,7 +9,7 @@ You will need all the typical gnome/python bindings.  If you're using a recent
 version of Ubuntu, this line will install them all:
 
     sudo apt-get install python python-glade2 python-gnome2 python-gconf python-gnome2-extras
-    
+
 And (obviously) the LaTeX utilities:
 
     sudo apt-get install texlive-latex-base texlive-base-bin texlive-latex-extra
@@ -25,6 +25,7 @@ with the following set of commands (again assuming Ubuntu):
     make
     sudo make install
 
+You will also need pygtksourceview2 and gtksourceview2 version >= 2.10 and the "rubber" latex wrapper.
 
 Usage
 -----
@@ -36,15 +37,17 @@ or make the desigle.py executable with
 	chmod +x desigle.py
 then you should be able to run it with
  	./desigle.py [filename]
-    
+
 
 Feedback
 --------
 Please report bugs to the website:
-    http://github.com/gsmcwhirter/desigle-fork
+    http://github.com/nihathreal/desigle-fork
 
 Based on Derek Anderson's original, information for which is at:
 
     http://code.google.com/p/desigle/
     http://groups.google.com/group/desigle-discuss
 
+and Greg McWhirter's fork:
+    http://github.com/gsmcwhirter/desigle-fork
