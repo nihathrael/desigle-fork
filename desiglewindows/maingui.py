@@ -24,6 +24,7 @@ import gobject
 import gtkspell
 import gtk
 import gtk.glade
+import glib
 import gnome
 import gnome.ui
 import pango

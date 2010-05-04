@@ -58,7 +58,7 @@ class TexDocument:
             self.ui.get_widget('menu_save').set_sensitive(False)
             self.ui.get_widget('toolbutton_save').set_sensitive(False)
         else:
-            self.open_file("default.tex")
+            self.open_file("%s/../default.tex" % os.path.dirname(__file__))
             self.ui.get_widget('menu_save').set_sensitive(True)
             self.ui.get_widget('toolbutton_save').set_sensitive(True)
         self.changed = False
