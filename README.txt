@@ -38,7 +38,6 @@ or make the desigle.py executable with
 then you should be able to run it with
  	./desigle.py [filename]
 
-
 Feedback
 --------
 Please report bugs to the website:

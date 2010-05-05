@@ -31,6 +31,19 @@ tmp_file = open( RUN_FROM_DIR + 'GPL.txt', 'r' )
 GPL = tmp_file.read()
 tmp_file.close()
 
+RUN_FROM_DIR = os.path.abspath(os.path.dirname(sys.argv[0])) + '/'
+CURRENT_DIR = os.getcwd()
+PROGRAM = 'DeSiGLE'
+SVN_INFO = commands.getoutput('svn info')
+VERSION = ''
+for line in SVN_INFO.split('\n'):
+    if line.startswith('Revision:'):
+        VERSION = 'v0.'+ line[10:]
+
+tmp_file = open( RUN_FROM_DIR + 'GPL.txt', 'r' )
+GPL = tmp_file.read()
+tmp_file.close()
+
 class GConfConfig:
 
     BASE_KEY = None
