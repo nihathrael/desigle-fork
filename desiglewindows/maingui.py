@@ -165,8 +165,8 @@ class MainGUI:
         toolbar_find.set_property('visible', False)
         self.ui.get_widget('toolbutton_find_cancel').connect('clicked', lambda x: self.toggle_find())
         self.ui.get_widget('entry_find').connect('changed', self.entry_find_changed_event )
-        self.ui.get_widget('toolbutton_find_forward').connect('clicked', lambda x: self.find_forward())
-        self.ui.get_widget('toolbutton_find_backward').connect('clicked', lambda x: self.find_backward())
+        self.ui.get_widget('toolbutton_find_forward').connect('clicked', lambda x: self.get_current_tex_doc().find_forward())
+        self.ui.get_widget('toolbutton_find_backward').connect('clicked', lambda x: self.get_current_tex_doc().find_backward())
 
 
 
@@ -208,8 +208,8 @@ class MainGUI:
         toolbar_find = self.ui.get_widget('toolbar_find')
         if toolbar_find.get_property('visible'):
             toolbar_find.set_property('visible', False)
-            self.editor.grab_focus()
-            buffer = self.editor.get_buffer()
+            self.get_current_tex_doc().editor.grab_focus()
+            buffer = self.get_current_tex_doc().editor.get_buffer()
             buffer.remove_tag_by_name('search_highlight', buffer.get_start_iter(), buffer.get_end_iter())
         else:
             entry_find = self.ui.get_widget('entry_find')
@@ -220,7 +220,7 @@ class MainGUI:
 
     def entry_find_changed_event(self, entry_find):
         search_text = entry_find.get_text()
-        self.find_forward(search_text)
+        self.get_current_tex_doc().find_forward(search_text)
 
 
     def editor_undo(self):
