@@ -303,28 +303,23 @@ class MainGUI:
 
     def zoom_pdf_page(self, scale, redraw=True):
         """None==auto-size, negative means relative, positive means fixed"""
-        if True:
-            if redraw and self.pdf_preview.get('current_page') and self.pdf_preview['scale']==scale:
-                return
-            pdf_preview = self.ui.get_widget('pdf_preview')
-            auto_scale = (pdf_preview.get_parent().get_allocation().width-2.0) / self.pdf_preview['width']
-            if scale==None:
-                scale = auto_scale
-            else:
-                if scale<0:
-                    if self.pdf_preview['scale']==None: self.pdf_preview['scale'] = auto_scale
-                    scale = self.pdf_preview['scale'] = self.pdf_preview['scale'] * -scale
-                else:
-                    self.pdf_preview['scale'] = scale
-            pdf_preview.set_size_request(int(self.pdf_preview['width']*scale), int(self.pdf_preview['height']*scale))
-            self.ui.get_widget('button_zoom_out').set_sensitive( scale>0.3 )
-            self.ui.get_widget('button_zoom_in').set_sensitive( True )
-            self.ui.get_widget('button_zoom_normal').set_sensitive( True )
-            self.ui.get_widget('button_zoom_best_fit').set_sensitive( True )
-            if redraw: pdf_preview.queue_draw()
-            return scale
-        else:
-            pass
+        if redraw and self.pdf_preview.get('current_page') and self.pdf_preview['scale']==scale:
+            return
+        pdf_preview = self.ui.get_widget('pdf_preview')
+        if scale == None:
+            # Autoscale
+            scale = (pdf_preview.get_parent().get_allocation().width-2.0) / self.pdf_preview['width']
+        if scale < 0:
+            scale = self.pdf_preview['scale'] * -scale
+        self.pdf_preview['scale'] = scale
+        pdf_preview.set_size_request(int(self.pdf_preview['width']*scale), int(self.pdf_preview['height']*scale))
+        self.ui.get_widget('button_zoom_out').set_sensitive( scale>0.3 )
+        self.ui.get_widget('button_zoom_in').set_sensitive( True )
+        self.ui.get_widget('button_zoom_normal').set_sensitive( True )
+        self.ui.get_widget('button_zoom_best_fit').set_sensitive( True )
+        if redraw:
+            pdf_preview.queue_draw()
+        return scale
 
     def on_expose_pdf_preview(self, widget, event):
         if not self.pdf_preview.get('current_page'): return
